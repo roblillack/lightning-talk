@@ -16,8 +16,7 @@ using System.Runtime.CompilerServices;
 // <id>: Unique Identifier of the Application
 [assembly: ApplicationIdentifier ("com.burningsoda.barefoot-presenter")]
 // <action> …
-[assembly: RequestedPermissions (RestrictedFunctionality.AccessSharedData,
-                                 RestrictedFunctionality.AccessNotificationLight)]
+[assembly: RequestedPermissions (RestrictedFunctionality.AccessSharedData)]
 
 [assembly: AspectRatio (AspectRatio.LANDSCAPE)]
 [assembly: NativeLibrary (Architecture.ARM, "libs/arm/libgdiplus.dll")]

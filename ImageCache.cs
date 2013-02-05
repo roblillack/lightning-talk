@@ -102,13 +102,13 @@ namespace BarefootPresenter
 			while (true) {
 				int min, max;
 				Console.WriteLine ("Prefetcher Waiting...");
-				NotificationLight.Blink (LEDs.Green);
+				//NotificationLight.Blink (LEDs.Green);
 				lock (cacheMap) {
 					Monitor.Wait (cacheMap);
 					min = MinPrefetch;
 					max = MaxPrefetch;
 				}
-				using (new Vibration (Vibration.Intensity.High)) {
+				//using (new Vibration (Vibration.Intensity.High)) {
 					Console.WriteLine ("Prefetching {0} to {1}", min, max);
 					foreach (var i in cacheMap) {
 						if (i.Key < min || i.Key > max) {
@@ -125,7 +125,7 @@ namespace BarefootPresenter
 						}
 						cacheMap.TryAdd (i, Load (i));
 					}
-				}
+				//}
 			}
 		}
 

@@ -11,12 +11,17 @@ namespace BarefootPresenter
 {
 	class Presenter
 	{
+		const int LIGHTNING_TALK_TIME = 5 * 60 * 1000;
 		Window window;
 		BlackBerry.Screen.Buffer buffer;
 		Graphics graphics;
-		int index;
 		ImageCache images;
 		int width, height;
+		Thread renderThread;
+		System.Timers.Timer timer;
+		volatile int index;
+		volatile int msecsLeft;
+		Font timerFont;
 
 		public static void Main (string[] args)
 		{
@@ -30,22 +35,51 @@ namespace BarefootPresenter
 
 		private void RenderSlide ()
 		{
-			index = Math.Max (Math.Min (index, images.Length - 1), 0);
-			Random r = new Random ();
-			//System.Console.WriteLine ("Image Size: {0}", img == null ? "no image" : img.Size.ToString ());
-			graphics.Clear (Color.Black);
-			DateTime loaded, before = DateTime.Now;
-			Image img;
-			if ((img = images.get (index)) != null) {
-				loaded = DateTime.Now;
-				graphics.DrawImage (img, 0, 0, width, height);
+			lock (this) {
+				Monitor.Pulse (this);
 			}
-			Font font = new Font (FontFamily.GenericSansSerif, 36.0f, FontStyle.Bold, GraphicsUnit.Pixel);
-			graphics.DrawString (images.Status, font, new SolidBrush (Color.DarkRed), new Point (20, 20));
-			graphics.DrawString (index.ToString (), font, new SolidBrush (Color.DarkGreen), new Point (20, 70));
-			//Dialog.Alert ("Info", "Loading this image took " + (loaded - before) + ", displaying " + (DateTime.Now - loaded) + " units.", new Button ("Ok"));
-			graphics.Flush ();
-			window.Render (buffer);
+		}
+
+		/*private void TimesUp ()
+		{
+
+		}*/
+
+		private void DrawTimer ()
+		{
+			if (!timer.Enabled) {
+				return;
+			}
+
+			if (timerFont == null) {
+				timerFont = new Font (FontFamily.GenericSansSerif, 100.0f, FontStyle.Regular, GraphicsUnit.Pixel);
+			}
+
+			var left = new TimeSpan (0, 0, 0, 0, msecsLeft);
+			var str = String.Format ("{0}′{1}.{2}″", left.Minutes, left.Seconds, left.Milliseconds / 100);
+			graphics.DrawString (str, timerFont, new SolidBrush (Color.DarkRed), new Point (20, 20));
+		}
+
+		private void RenderLoop ()
+		{
+			while (true) {
+				lock (this) {
+					Monitor.Wait (this);
+				}
+
+				index = Math.Max (Math.Min (index, images.Length - 1), 0);
+				DateTime loaded, before = DateTime.Now;
+				Image img;
+				if ((img = images.get (index)) != null) {
+					loaded = DateTime.Now;
+					graphics.DrawImage (img, 0, 0, width, height);
+				}
+
+				DrawTimer ();
+
+				graphics.Flush ();
+				window.Render (buffer);
+			}
 		}
 
 		public void NextSlide ()
@@ -63,21 +97,21 @@ namespace BarefootPresenter
 		public void Run ()
 		{
 			using (var nav = new Navigator ()) {
-				try {
+				/*try {
 					nav.SetOrientation (Navigator.ScreenOrientation.Landscape);
 				} catch (Exception e) {
 					Dialog.Alert ("ScreenOrientation Error", e.Message + "\n\n" + e.StackTrace, new Button ("Ack"));
-				}
+				}*/
 				try {
 					nav.SetOrientation (Navigator.ApplicationOrientation.TopUp);
 				} catch (Exception e) {
 					Dialog.Alert ("ApplicationOrientation Error", e.Message + "\n\n" + e.StackTrace, new Button ("Ack"));
 				}
-				try {
+				/*try {
 					nav.OrientationLock = true;
 				} catch (Exception e) {
 					Dialog.Alert ("OrientationLock Error", e.Message + "\n\n" + e.StackTrace, new Button ("Ack"));
-				}
+				}*/
 				using (var ctx = Context.GetInstance (ContextType.Application))
 				using (window = new Window (ctx)) {
 					window.KeepAwake = true;
@@ -87,11 +121,28 @@ namespace BarefootPresenter
 					height = window.Height;
 					graphics = Graphics.FromImage (buffer.Bitmap);
 
+					SoundPlayer.Prepare (SoundPlayer.SystemSound.AlarmBattery);
+
+					msecsLeft = LIGHTNING_TALK_TIME;
+					timer = new System.Timers.Timer ();
+					timer.AutoReset = true;
+					timer.Interval = 100;
+					timer.Elapsed += (sender, e) => {
+						msecsLeft -= 100;
+						if (msecsLeft <= 0) {
+							timer.Enabled = false;
+							SoundPlayer.Play (SoundPlayer.SystemSound.AlarmBattery);
+						}
+						RenderSlide ();
+					};
+
 					nav.OnSwipeDown = () => Dialog.Alert ("barefoot presenter",
 				                                      "Mem: " + System.GC.GetTotalMemory (false) + "\n" +
 					                                      images.Status,
-				                                      new Button ("Previous", PreviousSlide),
-				                                      new Button ("Next", NextSlide));				                                  
+					                                      new Button ("Lightning Talk", () => {
+						msecsLeft = LIGHTNING_TALK_TIME;
+						timer.Enabled = true;
+					}));				                                  
 
 					ctx.OnFingerTouch = (x, y) => {
 						if (x < window.Width / 2) {
@@ -112,6 +163,9 @@ namespace BarefootPresenter
 						System.Console.WriteLine ("I am asked to shutdown!?!");
 						PlatformServices.Shutdown (0);
 					};
+
+					renderThread = new Thread (RenderLoop);
+					renderThread.Start ();
 
 					DirectoryInfo dirInfo = new DirectoryInfo ("shared/documents");
 					images = new ImageCache (dirInfo.GetFiles ("*.jpg", SearchOption.AllDirectories), new Size (width, height));
