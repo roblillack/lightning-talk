@@ -16,7 +16,11 @@ using System.Runtime.CompilerServices;
 // <id>: Unique Identifier of the Application
 [assembly: ApplicationIdentifier ("com.burningsoda.barefoot-presenter")]
 // <action> …
-[assembly: RequestedPermissions (Action.AccessSharedData)]
+[assembly: RequestedPermissions (RestrictedFunctionality.AccessSharedData,
+                                 RestrictedFunctionality.AccessNotificationLight)]
+
+[assembly: AspectRatio (AspectRatio.LANDSCAPE)]
+[assembly: NativeLibrary (Architecture.ARM, "libs/arm/libgdiplus.dll")]
 
 // The assembly version has the format "{Major}.{Minor}.{Build}.{Revision}".
 // The form "{Major}.{Minor}.*" will automatically update the build and revision,

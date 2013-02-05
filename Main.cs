@@ -1,113 +1,129 @@
 using System;
 using System.Collections.Concurrent;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Threading;
 using BlackBerry;
 using BlackBerry.Screen;
 
 namespace BarefootPresenter
 {
-	class MainClass
+	class Presenter
 	{
-		const UInt32 WHITE = 0xffffffff;
-		const UInt32 RED = 0xffff0000;
-		const UInt32 BLACK = 0xff000000;
+		Window window;
+		BlackBerry.Screen.Buffer buffer;
+		Graphics graphics;
+		int index;
+		ImageCache images;
+		int width, height;
 
 		public static void Main (string[] args)
 		{
-			using (var nav = new Navigator ())
-			using (var ctx = Context.GetInstance (ContextType.Application))
-			using (var win = new Window (ctx)) {
-				win.KeepAwake = true;
-				win.AddBuffers (2);
-				var bufs = win.Buffers;
-				var buffer = bufs [0];
-				var brush = bufs [1];
-				var queue = new BlockingCollection<Point> ();
+			try {
+				var p = new Presenter ();
+				p.Run ();
+			} catch (System.Exception e) {
+				Dialog.Alert ("OH SNAP!", e.Message + (e.InnerException == null ? "": " ---- " + e.InnerException.Message), new Button ("Quit"));
+			}
+		}
 
-				buffer.Fill (WHITE);
-				brush.Fill (BLACK);
-				win.Render (buffer);
+		private void RenderSlide ()
+		{
+			index = Math.Max (Math.Min (index, images.Length - 1), 0);
+			Random r = new Random ();
+			//System.Console.WriteLine ("Image Size: {0}", img == null ? "no image" : img.Size.ToString ());
+			graphics.Clear (Color.Black);
+			DateTime loaded, before = DateTime.Now;
+			Image img;
+			if ((img = images.get (index)) != null) {
+				loaded = DateTime.Now;
+				graphics.DrawImage (img, 0, 0, width, height);
+			}
+			Font font = new Font (FontFamily.GenericSansSerif, 36.0f, FontStyle.Bold, GraphicsUnit.Pixel);
+			graphics.DrawString (images.Status, font, new SolidBrush (Color.DarkRed), new Point (20, 20));
+			graphics.DrawString (index.ToString (), font, new SolidBrush (Color.DarkGreen), new Point (20, 70));
+			//Dialog.Alert ("Info", "Loading this image took " + (loaded - before) + ", displaying " + (DateTime.Now - loaded) + " units.", new Button ("Ok"));
+			graphics.Flush ();
+			window.Render (buffer);
+		}
 
-				var paintThread = new Thread (() => {
-					for (;;) {
-						Point point;
-						Rectangle dirty;
-						int taken;
-						for (taken = 0; taken < 10 && queue.TryTake (out point); taken++) {
-							var dst_x = Math.Min (win.Width - 10, point.X);
-							var dst_y = Math.Min (win.Height - 10, point.Y);
-							try {
-								buffer.Blit (brush, 0, 0, 10, 10, dst_x, dst_y);
-							} catch (Exception e) {
-								Console.WriteLine (e.Message);
-							}
-							if (taken == 0) {
-								dirty = new Rectangle (dst_x, dst_y, 10, 10);
-							} else {
-								dirty.X = Math.Min (dirty.Left, dst_x);
-								dirty.Width = Math.Max (dirty.Width, (dst_x + 10) - dirty.X);
-								dirty.Y = Math.Min (dirty.Top, dst_y);
-								dirty.Height = Math.Max (dirty.Height, (dst_y + 10) - dirty.Y);
-							}
+		public void NextSlide ()
+		{
+			index++;
+			RenderSlide ();
+		}
+
+		public void PreviousSlide ()
+		{
+			index--;
+			RenderSlide ();
+		}
+
+		public void Run ()
+		{
+			using (var nav = new Navigator ()) {
+				try {
+					nav.SetOrientation (Navigator.ScreenOrientation.Landscape);
+				} catch (Exception e) {
+					Dialog.Alert ("ScreenOrientation Error", e.Message + "\n\n" + e.StackTrace, new Button ("Ack"));
+				}
+				try {
+					nav.SetOrientation (Navigator.ApplicationOrientation.TopUp);
+				} catch (Exception e) {
+					Dialog.Alert ("ApplicationOrientation Error", e.Message + "\n\n" + e.StackTrace, new Button ("Ack"));
+				}
+				try {
+					nav.OrientationLock = true;
+				} catch (Exception e) {
+					Dialog.Alert ("OrientationLock Error", e.Message + "\n\n" + e.StackTrace, new Button ("Ack"));
+				}
+				using (var ctx = Context.GetInstance (ContextType.Application))
+				using (window = new Window (ctx)) {
+					window.KeepAwake = true;
+					window.AddBuffer ();
+					buffer = window.Buffers [0];
+					width = window.Width;
+					height = window.Height;
+					graphics = Graphics.FromImage (buffer.Bitmap);
+
+					nav.OnSwipeDown = () => Dialog.Alert ("barefoot presenter",
+				                                      "Mem: " + System.GC.GetTotalMemory (false) + "\n" +
+					                                      images.Status,
+				                                      new Button ("Previous", PreviousSlide),
+				                                      new Button ("Next", NextSlide));				                                  
+
+					ctx.OnFingerTouch = (x, y) => {
+						if (x < window.Width / 2) {
+							PreviousSlide ();
+						} else {
+							NextSlide ();
 						}
-						if (taken < 1) {
-							continue;
+					};
+					ctx.OnKeyDown = (code, _) => {
+						if (code == KeyCode.Up) {
+							PreviousSlide ();
+						} else {
+							NextSlide ();
 						}
-						//Console.WriteLine ("Blitted {0} times before rendering", taken);
-						try {
-							win.Render (buffer, dirty, Flushing.SCREEN_WAIT_IDLE);
-						} catch (Exception e) {
-							Console.WriteLine (e.Message);
-						}
-					}
-				});
-				paintThread.Start ();
+					};
 
-				nav.OnSwipeDown = () => Dialog.Alert ("barefoot presenter", "Mem: " + GC.GetTotalMemory (false),
-				                                      new Button ("White", () => {
-					try {
-						buffer.Fill (WHITE);
-						win.Render (buffer);
-					} catch (Exception e) {
-						Console.WriteLine (e.Message);
-					}
-				}),
-				                                      new Button ("Red", () => {
-					try {
-						buffer.Fill (RED);
-						win.Render (buffer);
-					} catch (Exception e) {
-						Console.WriteLine (e.Message);
-					}
-				}));
-				win.OnCreate = () => Console.WriteLine ("win created.");
-				win.OnClose = () => Console.WriteLine ("win closed.");
-				ctx.OnFingerTouch = (x,y) => {
-					queue.Add (new Point (x, y));
-				};
-				ctx.OnFingerMove = ctx.OnFingerTouch;
-				ctx.OnFingerRelease = ctx.OnFingerTouch;
-				ctx.OnKeyDown = (code, _) => {
-					try {
-						buffer.Fill (code == KeyCode.Up ? RED : WHITE);
-						win.Render (buffer);
-					} catch (Exception e) {
-						Console.WriteLine (e.Message);
-					}
-				};
+					nav.OnExit = () => {
+						System.Console.WriteLine ("I am asked to shutdown!?!");
+						PlatformServices.Shutdown (0);
+					};
 
-				nav.OnExit = () => {
-					Console.WriteLine ("I am asked to shutdown!?!");
-					PlatformServices.Shutdown (0);
-				};
+					DirectoryInfo dirInfo = new DirectoryInfo ("shared/documents");
+					images = new ImageCache (dirInfo.GetFiles ("*.jpg", SearchOption.AllDirectories), new Size (width, height));
+					//Dialog.Alert ("Info", images.Length + " files found in " + dirInfo.FullName,
+				    //          new Button ("Nevermind"));
 
-				Image img = System.Drawing.Image.FromStream (System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream ("barefoot.resources.photo.jpg"));
-				Console.WriteLine ("Image Size: {0}", img == null ? "no image" : img.Size.ToString ());
+					RenderSlide ();
 
-				PlatformServices.Run ();
-				Console.WriteLine ("Event handler stopped. WTH?");
-				PlatformServices.Shutdown (1);
+					PlatformServices.Run ();
+					System.Console.WriteLine ("Event handler stopped. WTH?");
+					PlatformServices.Shutdown (1);
+				}
 			}
 		}
 	}
