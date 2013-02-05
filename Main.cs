@@ -7,7 +7,7 @@ using System.Threading;
 using BlackBerry;
 using BlackBerry.Screen;
 
-namespace BarefootPresenter
+namespace LightningTalk
 {
 	class Presenter
 	{
@@ -56,7 +56,7 @@ namespace BarefootPresenter
 			}
 
 			var left = new TimeSpan (0, 0, 0, 0, msecsLeft);
-			var str = String.Format ("{0}′{1}.{2}″", left.Minutes, left.Seconds, left.Milliseconds / 100);
+			var str = String.Format ("{0}′{1:00}.{2}″", left.Minutes, left.Seconds, left.Milliseconds / 100);
 			graphics.DrawString (str, timerFont, new SolidBrush (Color.DarkRed), new Point (20, 20));
 		}
 
@@ -97,15 +97,15 @@ namespace BarefootPresenter
 		public void Run ()
 		{
 			using (var nav = new Navigator ()) {
-				/*try {
+				try {
 					nav.SetOrientation (Navigator.ScreenOrientation.Landscape);
 				} catch (Exception e) {
-					Dialog.Alert ("ScreenOrientation Error", e.Message + "\n\n" + e.StackTrace, new Button ("Ack"));
-				}*/
+					Console.WriteLine ("ScreenOrientation Error: {0}\n{1}", e.Message, e.StackTrace);
+				}
 				try {
 					nav.SetOrientation (Navigator.ApplicationOrientation.TopUp);
 				} catch (Exception e) {
-					Dialog.Alert ("ApplicationOrientation Error", e.Message + "\n\n" + e.StackTrace, new Button ("Ack"));
+					Console.WriteLine ("ApplicationOrientation Error: {0}\n{1}", e.Message, e.StackTrace);
 				}
 				/*try {
 					nav.OrientationLock = true;
@@ -136,10 +136,9 @@ namespace BarefootPresenter
 						RenderSlide ();
 					};
 
-					nav.OnSwipeDown = () => Dialog.Alert ("barefoot presenter",
-				                                      "Mem: " + System.GC.GetTotalMemory (false) + "\n" +
-					                                      images.Status,
-					                                      new Button ("Lightning Talk", () => {
+					nav.OnSwipeDown = () => Dialog.Alert ("Lightning Talk",
+				                                          "A MonoBerry demonstration.",
+					                                      new Button ("Countdown 5 mins", () => {
 						msecsLeft = LIGHTNING_TALK_TIME;
 						timer.Enabled = true;
 					}));				                                  
@@ -160,7 +159,6 @@ namespace BarefootPresenter
 					};
 
 					nav.OnExit = () => {
-						System.Console.WriteLine ("I am asked to shutdown!?!");
 						PlatformServices.Shutdown (0);
 					};
 

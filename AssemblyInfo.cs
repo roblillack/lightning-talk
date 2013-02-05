@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 
 // <name>: Title of the Application on the home screen
-[assembly: AssemblyTitle("Barefoot Presenter")]
+[assembly: AssemblyTitle("Lightning Talk")]
 // <description>: …
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
@@ -14,10 +14,11 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyCulture("")]
 
 // <id>: Unique Identifier of the Application
-[assembly: ApplicationIdentifier ("com.burningsoda.barefoot-presenter")]
+[assembly: ApplicationIdentifier ("com.burningsoda.lightning-talk")]
 // <action> …
 [assembly: RequestedPermissions (RestrictedFunctionality.AccessSharedData)]
 
+[assembly: Icon ("icon.png")]
 [assembly: AspectRatio (AspectRatio.LANDSCAPE)]
 [assembly: NativeLibrary (Architecture.ARM, "libs/arm/libgdiplus.dll")]
 

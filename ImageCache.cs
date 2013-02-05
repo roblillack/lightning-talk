@@ -8,7 +8,7 @@ using System.Threading;
 using BlackBerry;
 using LEDs = BlackBerry.NotificationLight.Color;
 
-namespace BarefootPresenter
+namespace LightningTalk
 {
 	public class ImageCache
 	{
