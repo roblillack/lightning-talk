@@ -92,8 +92,6 @@ namespace LightningTalk
 				newW = original.Width * newH / original.Height;
 			}
 
-			Console.WriteLine ("[{0}, {1}] --> [{2}, {3}]", original.Width, original.Height, newW, newH);
-
 			return new Size (newW, newH);
     	}
 
@@ -101,7 +99,7 @@ namespace LightningTalk
 		{
 			while (true) {
 				int min, max;
-				Console.WriteLine ("Prefetcher Waiting...");
+				//Console.WriteLine ("Prefetcher Waiting...");
 				//NotificationLight.Blink (LEDs.Green);
 				lock (cacheMap) {
 					Monitor.Wait (cacheMap);
@@ -109,7 +107,7 @@ namespace LightningTalk
 					max = MaxPrefetch;
 				}
 				//using (new Vibration (Vibration.Intensity.High)) {
-					Console.WriteLine ("Prefetching {0} to {1}", min, max);
+					//Console.WriteLine ("Prefetching {0} to {1}", min, max);
 					foreach (var i in cacheMap) {
 						if (i.Key < min || i.Key > max) {
 							Image img;
