@@ -13,4 +13,4 @@ using System.Runtime.CompilerServices;
 [assembly: AspectRatio (AspectRatio.LANDSCAPE)]
 [assembly: NativeLibrary (Architecture.ARM, "libs/arm/libgdiplus.dll")]
 
-[assembly: AssemblyVersion ("1.0.0.*")]
+[assembly: AssemblyVersion ("1.0.0.0")]
