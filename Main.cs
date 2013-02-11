@@ -165,8 +165,11 @@ namespace LightningTalk
 
 					DirectoryInfo dirInfo = new DirectoryInfo ("shared/documents");
 					images = new ImageCache (dirInfo.GetFiles ("*.jpg", SearchOption.AllDirectories), new Size (width, height));
-					//Dialog.Alert ("Info", images.Length + " files found in " + dirInfo.FullName,
-				    //          new Button ("Nevermind"));
+					if (images.Length == 0) {
+						Dialog.Alert ("Lightning Talk",
+						              "No presentation slides found! Please add *.jpg files to your ‘documents’ folder or a subdirectory!",
+						              new Button ("Quit", () => PlatformServices.Shutdown (0)));
+					}
 
 					RenderSlide ();
 
