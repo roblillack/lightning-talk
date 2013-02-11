@@ -40,11 +40,6 @@ namespace LightningTalk
 			}
 		}
 
-		/*private void TimesUp ()
-		{
-
-		}*/
-
 		private void DrawTimer ()
 		{
 			if (!timer.Enabled) {
@@ -68,10 +63,8 @@ namespace LightningTalk
 				}
 
 				index = Math.Max (Math.Min (index, images.Length - 1), 0);
-				DateTime loaded, before = DateTime.Now;
 				Image img;
 				if ((img = images.get (index)) != null) {
-					loaded = DateTime.Now;
 					graphics.DrawImage (img, 0, 0, width, height);
 				}
 
@@ -107,11 +100,11 @@ namespace LightningTalk
 				} catch (Exception e) {
 					Console.WriteLine ("ApplicationOrientation Error: {0}\n{1}", e.Message, e.StackTrace);
 				}
-				/*try {
+				try {
 					nav.OrientationLock = true;
 				} catch (Exception e) {
-					Dialog.Alert ("OrientationLock Error", e.Message + "\n\n" + e.StackTrace, new Button ("Ack"));
-				}*/
+					Console.WriteLine ("OrientationLock Error: {0}\n{1}", e.Message, e.StackTrace);
+				}
 				using (var ctx = Context.GetInstance (ContextType.Application))
 				using (window = new Window (ctx)) {
 					window.KeepAwake = true;
