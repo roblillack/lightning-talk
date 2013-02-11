@@ -129,12 +129,17 @@ namespace LightningTalk
 						RenderSlide ();
 					};
 
-					nav.OnSwipeDown = () => Dialog.Alert ("Lightning Talk",
-				                                          "A MonoBerry demonstration.",
-					                                      new Button ("Countdown 5 mins", () => {
-						msecsLeft = LIGHTNING_TALK_TIME;
-						timer.Enabled = true;
-					}));				                                  
+					nav.OnSwipeDown = () =>
+						Dialog.Alert ("Lightning Talk",
+						    "Add slides as *.jpg files to your ‘documents’ folder or a subdirectory. " +
+						    "Touch screen or use a bluetooth remote to switch slides.\n\n" +
+					    	"©2013 by @roblillack.\nLicensed under the MIT license.",
+							new Button ("Countdown 5 mins", () => {
+					  			msecsLeft = LIGHTNING_TALK_TIME;
+								timer.Enabled = true;
+							}),
+				            new Button ("Show Source Code", () =>
+					            nav.Invoke ("http://github.com/roblillack/lightning-talk")));
 
 					ctx.OnFingerTouch = (x, y) => {
 						if (x < window.Width / 2) {
